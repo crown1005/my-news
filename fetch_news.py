@@ -10,7 +10,7 @@ def filter_by_keywords(items):
     return [i for i in items if any(kw.lower() in i["title"].lower() for kw in KEYWORDS)]
 
 # ---- Hacker News ----
-def get_hn_stories(limit=30):  # 多めに取ってからフィルター
+def get_hn_stories(limit=30):
     ids = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json").json()
     stories = []
     for id in ids[:limit]:
@@ -24,30 +24,29 @@ def get_hatena_entries(limit=30):
     items = [{"title": e.title, "url": e.link} for e in feed.entries[:limit]]
     return filter_by_keywords(items)
 
-# ---- Reddit ----
+# ---- Reddit（RSSで取得） ----
 SUBREDDITS = ["MachineLearning", "netsec", "database", "technology"]
 
-def get_reddit_posts(limit=30):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+def get_reddit_posts():
     all_posts = []
     for sub in SUBREDDITS:
         try:
-            res = requests.get(
-                f"https://www.reddit.com/r/{sub}/top.json?limit={limit}&t=day",
-                headers=headers,
-                timeout=10
-            )
-            if res.status_code != 200:
-                print(f"Reddit {sub}: ステータスコード {res.status_code} スキップします")
-                continue
-            posts = res.json()["data"]["children"]
-            all_posts += [{"title": p["data"]["title"], "url": p["data"]["url"]} for p in posts]
+            feed = feedparser.parse(f"https://www.reddit.com/r/{sub}/top.rss?t=day")
+            all_posts += [{"title": e.title, "url": e.link} for e in feed.entries]
         except Exception as e:
             print(f"Reddit {sub}: エラー {e} スキップします")
             continue
     return filter_by_keywords(all_posts)
+
+# ---- HTML生成 ----
+def build_html(hn, hatena, reddit):
+    date_str = datetime.now().strftime("%Y年%m月%d日")
+
+    def section(title, items, color):
+        if not items:
+            return f'<h2 style="color:{color}">{title}</h2><p>該当記事なし</p>'
+        links = "\n".join(f'<li><a href="{i["url"]}" target="_blank">{i["title"]}</a></li>' for i in items)
+        return f'<h2 style="color:{color}">{title}</h2><ul>{links}</ul>'
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
