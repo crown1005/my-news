@@ -1,6 +1,6 @@
 import requests
 import feedparser
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # ---- 興味キーワード ----
 KEYWORDS = ["AI", "機械学習", "セキュリティ", "データベース", "オラクル",
@@ -68,7 +68,8 @@ def build_section(title, items, color, icon):
     return f'<div class="section"><h2 style="color:{color}">{icon} {title}</h2><ul>{links}</ul></div>'
 
 def build_html(hn, hatena, reddit, rss_articles):
-    date_str = datetime.now().strftime("%Y年%m月%d日")
+    JST = timezone(timedelta(hours=9))
+    date_str = datetime.now(JST).strftime("%Y年%m月%d日")
 
     sources = [
         ("Hacker News",  hn,      "#ff6600", "🔥"),
