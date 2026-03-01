@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 # ---- 興味キーワード ----
 KEYWORDS = ["AI", "機械学習", "セキュリティ", "データベース", "オラクル",
             "machine learning", "security", "database", "oracle",
-            "tech", "software", "python", "cloud", "cyber", "data",
+            "tech", "software", "oci", "aws", "cloud", "data",
             "テック", "技術", "エンジニア", "開発", "プログラム"]
 
 def filter_by_keywords(items):
