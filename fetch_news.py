@@ -28,23 +28,26 @@ def get_hatena_entries(limit=30):
 SUBREDDITS = ["MachineLearning", "netsec", "database", "technology"]
 
 def get_reddit_posts(limit=30):
-    headers = {"User-Agent": "my-newspaper/1.0"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     all_posts = []
     for sub in SUBREDDITS:
-        res = requests.get(f"https://www.reddit.com/r/{sub}/top.json?limit={limit}&t=day", headers=headers)
-        posts = res.json()["data"]["children"]
-        all_posts += [{"title": p["data"]["title"], "url": p["data"]["url"]} for p in posts]
+        try:
+            res = requests.get(
+                f"https://www.reddit.com/r/{sub}/top.json?limit={limit}&t=day",
+                headers=headers,
+                timeout=10
+            )
+            if res.status_code != 200:
+                print(f"Reddit {sub}: ステータスコード {res.status_code} スキップします")
+                continue
+            posts = res.json()["data"]["children"]
+            all_posts += [{"title": p["data"]["title"], "url": p["data"]["url"]} for p in posts]
+        except Exception as e:
+            print(f"Reddit {sub}: エラー {e} スキップします")
+            continue
     return filter_by_keywords(all_posts)
-
-# ---- HTML生成 ----
-def build_html(hn, hatena, reddit):
-    date_str = datetime.now().strftime("%Y年%m月%d日")
-
-    def section(title, items, color):
-        if not items:
-            return f'<h2 style="color:{color}">{title}</h2><p>該当記事なし</p>'
-        links = "\n".join(f'<li><a href="{i["url"]}" target="_blank">{i["title"]}</a></li>' for i in items)
-        return f'<h2 style="color:{color}">{title}</h2><ul>{links}</ul>'
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
