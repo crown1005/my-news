@@ -24,7 +24,7 @@ def get_hatena_entries(limit=30):
     items = [{"title": e.title, "url": e.link} for e in feed.entries[:limit]]
     return filter_by_keywords(items)
 
-# ---- Reddit（RSSで取得） ----
+# ---- Reddit（RSS） ----
 SUBREDDITS = ["MachineLearning", "netsec", "database", "technology"]
 
 def get_reddit_posts():
@@ -35,11 +35,34 @@ def get_reddit_posts():
             all_posts += [{"title": e.title, "url": e.link} for e in feed.entries]
         except Exception as e:
             print(f"Reddit {sub}: エラー {e} スキップします")
-            continue
     return filter_by_keywords(all_posts)
 
+# ---- RSSフィード一括取得 ----
+RSS_FEEDS = {
+    "TechCrunch":       "https://techcrunch.com/feed/",
+    "Ars Technica":     "https://feeds.arstechnica.com/arstechnica/index",
+    "The Hacker News":  "https://feeds.feedburner.com/TheHackersNews",
+    "Zenn":             "https://zenn.dev/feed",
+    "Qiita":            "https://qiita.com/popular-items/feed",
+    "ITmedia":          "https://rss.itmedia.co.jp/rss/2.0/itmedia_all.xml",
+}
+
+def get_rss_articles(limit=30):
+    all_items = {}
+    for name, url in RSS_FEEDS.items():
+        try:
+            feed = feedparser.parse(url)
+            items = [{"title": e.title, "url": e.link} for e in feed.entries[:limit]]
+            filtered = filter_by_keywords(items)
+            all_items[name] = filtered
+            print(f"{name}: {len(filtered)}件")
+        except Exception as e:
+            print(f"{name}: エラー {e} スキップします")
+            all_items[name] = []
+    return all_items
+
 # ---- HTML生成 ----
-def build_html(hn, hatena, reddit):
+def build_html(hn, hatena, reddit, rss_articles):
     date_str = datetime.now().strftime("%Y年%m月%d日")
 
     def section(title, items, color):
@@ -47,6 +70,12 @@ def build_html(hn, hatena, reddit):
             return f'<h2 style="color:{color}">{title}</h2><p>該当記事なし</p>'
         links = "\n".join(f'<li><a href="{i["url"]}" target="_blank">{i["title"]}</a></li>' for i in items)
         return f'<h2 style="color:{color}">{title}</h2><ul>{links}</ul>'
+
+    rss_sections = ""
+    colors = ["#e91e8c", "#2196f3", "#4caf50", "#9c27b0", "#ff9800", "#00bcd4"]
+    icons  = ["⚡", "🛡️", "🌐", "📝", "📌", "💻"]
+    for i, (name, items) in enumerate(rss_articles.items()):
+        rss_sections += section(f"{icons[i]} {name}", items, colors[i])
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -59,14 +88,16 @@ def build_html(hn, hatena, reddit):
     li {{ margin: 8px 0; }}
     a {{ color: #333; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
+    .keywords {{ background: #f5f5f5; padding: 8px 16px; border-radius: 8px; font-size: 0.9em; }}
   </style>
 </head>
 <body>
   <h1>📰 My Newspaper — {date_str}</h1>
-  <p>🔍 キーワード：AI / 機械学習 / セキュリティ / データベース / オラクル</p>
+  <p class="keywords">🔍 キーワード：AI / 機械学習 / セキュリティ / データベース / オラクル</p>
   {section("🔥 Hacker News", hn, "#ff6600")}
   {section("⭐ はてブ ホットエントリ", hatena, "#008fde")}
   {section("🌍 Reddit", reddit, "#ff4500")}
+  {rss_sections}
 </body>
 </html>"""
 
@@ -79,4 +110,5 @@ if __name__ == "__main__":
     hn = get_hn_stories()
     hatena = get_hatena_entries()
     reddit = get_reddit_posts()
-    build_html(hn, hatena, reddit)
+    rss_articles = get_rss_articles()
+    build_html(hn, hatena, reddit, rss_articles)
