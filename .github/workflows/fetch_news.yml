@@ -2,7 +2,7 @@ name: Fetch News
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 毎朝8時（日本時間）= UTC 23時
+    - cron: '0 21 * * *'  # 毎朝6時（日本時間）
   workflow_dispatch:        # 手動実行ボタンも使えるようにする
 
 jobs:
